@@ -24,20 +24,21 @@ The following analysis steps are included in this study:
 Linear Mixed Model to assess differences in unpleasantness ratings (auditory lo/hi, pressure pain lo/hi) between CLBP and controls.
 Pearson Correlations between unpleasantness ratings and clinical pain measures (avg_pain (BPI-item), spontaneous pain).
 
-### II. Follow-up Whole-Brain Exploratory Voxel-Wise Analysis
-Investigate potential multisensory sensitivity (MSS)-related activity changes outside of defined ROI regions.
-
-### III. Univariate ROI Analysis
+### II. Univariate ROI Analysis
 Unisensory: Auditory (A1, IC, MGN), Mechanical (S1)
 Sensory integrative: Insula (Ventral & Dorsal Anterior, Posterior)
 Higher level: Medial Prefrontal Cortex, Precuneus, TPJ, Posterior Cingulate Cortex
 
-### IV. Multivariate Analysis
+### III. Multivariate Analysis
 Analysis of Aversive Patterns: Common, Mechanical, Auditory
 Functional Mapping (FM) patterns: FM pain, FM multisensory stimulation.
 
-### V. Brain - Behavior Correlations
+### IV. Brain - Behavior Correlations
 Correlate areas showing significant BOLD activity differences between groups with the behavioral outcomes from the Behavioral Analysis section.
+
+### V. Follow-up Whole-Brain Exploratory Voxel-Wise Analysis
+Investigate potential multisensory sensitivity (MSS)-related activity changes outside of defined ROI regions.
+
 
 ## Hypotheses
 
