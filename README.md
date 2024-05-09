@@ -27,7 +27,7 @@ Pearson Correlations between unpleasantness ratings and clinical pain measures (
 ### II. Univariate ROI Analysis
 Unisensory: Auditory (A1, IC, MGN), Mechanical (S1)
 Sensory integrative: Insula (Ventral & Dorsal Anterior, Posterior)
-Higher level: Medial Prefrontal Cortex, Precuneus, TPJ, Posterior Cingulate Cortex
+Higher level: Medial Prefrontal Cortex, Precuneus, Posterior Cingulate Cortex
 
 ### III. Multivariate Analysis
 Analysis of Aversive Patterns: Common, Mechanical, Auditory
