@@ -12,7 +12,7 @@ all_subjects_outcomes_demographics.Properties.VariableNames{1} = 'Subject';
 
 behaviour_table = join(behaviour_table, all_subjects_outcomes_demographics, "Keys","Subject");
 
-%% modelling
+%% modeling
 
 % Time is coded 0/1, which is correct and interpretable
 % For Group convert to categorical. 
@@ -34,9 +34,11 @@ fitlme(behaviour_tablePRTvsUC, 'Rating ~ Group*Time + Intensity + age + gender +
 
 
 
-%% sanity/memory check: confirm that when you test subject averages, no sig effect
-% Compute the mean of 'Value' for each combination of Subject and Time
+%% sanity/memory check: confirm that when you test subject average low and avg hi, no sig effect
+% i previously (5 years ago) tested for Lo and Hi separately.
 clc
+
+% Compute the mean of 'Value' for each combination of Subject and Time
 T_avg = groupsummary(behaviour_table, {'Subject','Time', 'Intensity', 'Group', 'age', 'gender'}, 'mean', 'Rating');
 
 T_avgPRTvsPLA = T_avg(T_avg.Group ~= "3",:);
@@ -45,10 +47,37 @@ T_avgPRTvsPLA.Group = removecats(T_avgPRTvsPLA.Group);
 T_avgPRTvsUC = T_avg(T_avg.Group ~= "2",:);
 T_avgPRTvsUC.Group = removecats(T_avgPRTvsUC.Group);
 
-fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + Intensity + age + gender + (1|Subject)')
+% each intensity separately: not sig
+fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)', 'Exclude', T_avgPRTvsPLA.Intensity==2)
+fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)', 'Exclude', T_avgPRTvsUC.Intensity==2)
 
-fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + Intensity + age + gender + (1|Subject)')
+%% sanity/memory check: confirm that when you test subject average across low/hi, no sig effect
+% i also previously (5 years ago) tested subj avg, avg across Lo and Hi 
+clc
+
+% Compute the mean of 'Value' for each combination of Subject and Time
+T_avg = groupsummary(behaviour_table, {'Subject','Time', 'Group', 'age', 'gender'}, 'mean', 'Rating');
+
+T_avgPRTvsPLA = T_avg(T_avg.Group ~= "3",:);
+T_avgPRTvsPLA.Group = removecats(T_avgPRTvsPLA.Group);
+
+T_avgPRTvsUC = T_avg(T_avg.Group ~= "2",:);
+T_avgPRTvsUC.Group = removecats(T_avgPRTvsUC.Group);
+
+% each intensity separately: not sig
+fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)')
+fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)')
+
 
 %% plot
 plot_MSS_group_by_time(T_avg, 'mean_Rating')
 print(gcf, fullfile(figdir, 'MSS_group_by_time.pdf'), '-dpdf');
+
+
+%% plot ratings in PRT by subject ID, to confirm no time/order effect
+T_avgPRT = T_avg(T_avg.Group=='1' & T_avg.Intensity==1,:);
+figure;
+boxplot(T_avgPRT.mean_Rating, T_avgPRT.Subject);
+xlabel('Subject');
+ylabel('Value');
+title('Box Plot of Value by Subject');
