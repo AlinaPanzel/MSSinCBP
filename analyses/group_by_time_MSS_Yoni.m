@@ -1,6 +1,8 @@
 % let's merge in age and gender
 
 
+figdir = '/Users/yoni/Repositories/MSSinCBP/figures';
+
 datadir = '/Users/yoni/Repositories/OLP4CBP/data';
 load(fullfile(datadir, 'all_subjects_outcomes_demographics.mat'));
 all_subjects_outcomes_demographics = all_subjects_outcomes_demographics(all_subjects_outcomes_demographics.time==1 & all_subjects_outcomes_demographics.is_patient==1,:);
@@ -31,7 +33,8 @@ fitlme(behaviour_tablePRTvsPLA, 'Rating ~ Group*Time + Intensity + age + gender 
 fitlme(behaviour_tablePRTvsUC, 'Rating ~ Group*Time + Intensity + age + gender + (1|Subject)')
 
 
-%% just for my own sanity, confirm that when you test subject averages, no sig effect
+
+%% sanity/memory check: confirm that when you test subject averages, no sig effect
 % Compute the mean of 'Value' for each combination of Subject and Time
 clc
 T_avg = groupsummary(behaviour_table, {'Subject','Time', 'Intensity', 'Group', 'age', 'gender'}, 'mean', 'Rating');
@@ -42,8 +45,10 @@ T_avgPRTvsPLA.Group = removecats(T_avgPRTvsPLA.Group);
 T_avgPRTvsUC = T_avg(T_avg.Group ~= "2",:);
 T_avgPRTvsUC.Group = removecats(T_avgPRTvsUC.Group);
 
-% we see a highly sig PRT effect vs. placebo! about 6 points
 fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + Intensity + age + gender + (1|Subject)')
 
-% we see a highly sig PRT effect vs. placebo! about 6 points
 fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + Intensity + age + gender + (1|Subject)')
+
+%% plot
+plot_MSS_group_by_time(T_avg, 'mean_Rating')
+print(gcf, fullfile(figdir, 'MSS_group_by_time.pdf'), '-dpdf');
