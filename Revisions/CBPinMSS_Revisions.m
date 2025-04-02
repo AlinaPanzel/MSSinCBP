@@ -16,8 +16,8 @@ clc;
 clear;
 
 % addpath
-addpath(genpath('/Users/alinapanzel/Desktop/Dartmouth_project'))
-datadir = '/Users/alinapanzel/Desktop/Dartmouth_project/acute_contrast_maps/work/ics/data/projects/wagerlab/labdata/projects/OLP4CBP/first_level';
+%addpath(genpath('/Users/alinapanzel/Desktop/Dartmouth_project'))
+%datadir = '/Users/alinapanzel/Desktop/Dartmouth_project/acute_contrast_maps/work/ics/data/projects/wagerlab/labdata/projects/OLP4CBP/first_level';
 
 % set structs
 d = struct; % struct for directories/ data
