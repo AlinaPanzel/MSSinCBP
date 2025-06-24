@@ -1,9 +1,9 @@
 % _________________________________________________________________________
 
-% Multisensory sensitivity in chronic lower back pain fMRI Analysis 
+% Auditory sensitivity in chronic back pain fMRI Analysis 
 %
 % Author: Alina Panzel
-% Last edited: 17.04.2024
+% Last edited: 24.06.2025
 % Sourcecode: Yoni Ashar, CANlab tools
 %
 % Analysis plan: 
