@@ -10,7 +10,30 @@ all_subjects_outcomes_demographics = all_subjects_outcomes_demographics(all_subj
 all_subjects_outcomes_demographics = all_subjects_outcomes_demographics(:, {'id', 'age', 'gender'});
 all_subjects_outcomes_demographics.Properties.VariableNames{1} = 'Subject';
 
+load(fullfile(fileparts(figdir), 'data', 'behaviour_table.mat'))
 behaviour_table = join(behaviour_table, all_subjects_outcomes_demographics, "Keys","Subject");
+
+%% find and remove the outlier that Andrew noticed
+
+% compute average per person per timepoint, averaging across trials and
+% intensities
+Tavg = groupsummary(behaviour_table, {'Subject','Group','Time','age','gender'}, 'mean','Rating');
+
+% now compute change score per person -- pivot to wide format
+
+% Pivot so that Time becomes separate columns
+Tw = unstack(Tavg, 'mean_Rating', 'Time');
+Tw.Change = Tw.x1 - Tw.x0;
+
+figure, scatter(1:height(Tw),sort(Tw.Change))
+ylabel('Pre-to-Post Change Scores')
+xlabel('Subjects')
+set(gca, 'FontSize', 24)
+
+%% 1 min and 1 max outlier
+Tw(Tw.Change == min(Tw.Change) | Tw.Change == max(Tw.Change),:)
+
+wh_drop = [1029 1231];
 
 %% modeling
 
@@ -19,6 +42,7 @@ behaviour_table = join(behaviour_table, all_subjects_outcomes_demographics, "Key
 % Then create two versions: one without PLA, one without UC. For testing
 % PRT vs. each control, separately
 behaviour_table.Group = categorical(behaviour_table.Group);
+behaviour_table.IsPRT = behaviour_table.Group == "1";
 
 behaviour_tablePRTvsPLA = behaviour_table(behaviour_table.Group ~= "3",:);
 behaviour_tablePRTvsPLA.Group = removecats(behaviour_tablePRTvsPLA.Group);
@@ -27,16 +51,20 @@ behaviour_tablePRTvsUC = behaviour_table(behaviour_table.Group ~= "2",:);
 behaviour_tablePRTvsUC.Group = removecats(behaviour_tablePRTvsUC.Group);
 
 % we see a highly sig PRT effect vs. placebo! about 6 points
-fitlme(behaviour_tablePRTvsPLA, 'Rating ~ Group*Time + Intensity + age + gender + (1|Subject)')
+fitlme(behaviour_tablePRTvsPLA, 'Rating ~ Group*Time*Intensity + (1+Time|Subject)', 'Exclude',ismember(behaviour_tablePRTvsPLA.Subject, wh_drop))
 
-%% we see a highly sig PRT effect vs. UC! about 6 points as well
-fitlme(behaviour_tablePRTvsUC, 'Rating ~ Group*Time + Intensity + age + gender + (1|Subject)')
+%% PRT vs combined control
+fitlme(behaviour_table, 'Rating ~ IsPRT*Time + Intensity + age + gender + (Time|Subject)', 'Exclude',ismember(behaviour_table.Subject, wh_drop))
 
+%% SUMMARY
+% dropping the two outliers brings the p values from the n.s. zone into the
+% marginally sig zone. Andrew's RE model must be what takes it from
+% marginal zone to significant.
 
 
 %% sanity/memory check: confirm that when you test subject average low and avg hi, no sig effect
 % i previously (5 years ago) tested for Lo and Hi separately.
-clc
+
 
 % Compute the mean of 'Value' for each combination of Subject and Time
 T_avg = groupsummary(behaviour_table, {'Subject','Time', 'Intensity', 'Group', 'age', 'gender'}, 'mean', 'Rating');
@@ -48,8 +76,8 @@ T_avgPRTvsUC = T_avg(T_avg.Group ~= "2",:);
 T_avgPRTvsUC.Group = removecats(T_avgPRTvsUC.Group);
 
 % each intensity separately: not sig
-fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)', 'Exclude', T_avgPRTvsPLA.Intensity==2)
-fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)', 'Exclude', T_avgPRTvsUC.Intensity==2)
+fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + age + gender + (Time|Subject)', 'Exclude', T_avgPRTvsPLA.Intensity==2)
+%fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)', 'Exclude', T_avgPRTvsUC.Intensity==2)
 
 %% sanity/memory check: confirm that when you test subject average across low/hi, no sig effect
 % i also previously (5 years ago) tested subj avg, avg across Lo and Hi 
