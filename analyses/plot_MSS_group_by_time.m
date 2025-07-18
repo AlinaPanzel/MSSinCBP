@@ -54,9 +54,9 @@ if any(strcmp(varargin, 'plothealthies')), plothealthies=true; end
 
 wh_T1 = tabl.Time==0;
 wh_T2 = tabl.Time==1;
-wh_prt = tabl.Group=="1";
-wh_pla = tabl.Group=="2";
-wh_wl = tabl.Group=="3";
+wh_prt = tabl.Group==1;
+wh_pla = tabl.Group==2;
+wh_wl = tabl.Group==3;
 
 %% Interaction plot
 
@@ -64,7 +64,7 @@ if plothealthies
     tiledlayout(1,2)
     nexttile
 else
-    create_figure(['grp by time ' outcome], 1, 1); 
+    create_figure(['grp by time ' outcome num2str(randi(1000))], 1, 1); 
 end
 
 h1=lineplot_columns( {tabl.(outcome)(wh_T1 & wh_prt) tabl.(outcome)(wh_T2 & wh_prt)}, 'color', 'b', 'x', [1 2]); hold on

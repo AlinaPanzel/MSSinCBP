@@ -10,7 +10,8 @@ all_subjects_outcomes_demographics = all_subjects_outcomes_demographics(all_subj
 all_subjects_outcomes_demographics = all_subjects_outcomes_demographics(:, {'id', 'age', 'gender'});
 all_subjects_outcomes_demographics.Properties.VariableNames{1} = 'Subject';
 
-load(fullfile(fileparts(figdir), 'data', 'behaviour_table.mat'))
+load(fullfile(fileparts(figdir), 'data', 'behavioural_sound_ratings_all.mat'))
+behaviour_table = sound_table;
 behaviour_table = join(behaviour_table, all_subjects_outcomes_demographics, "Keys","Subject");
 
 %% find and remove the outlier that Andrew noticed
@@ -31,9 +32,9 @@ xlabel('Subjects')
 set(gca, 'FontSize', 24)
 
 %% 1 min and 1 max outlier
-Tw(Tw.Change == min(Tw.Change) | Tw.Change == max(Tw.Change),:)
+tmp = Tw(Tw.Change == min(Tw.Change) | Tw.Change == max(Tw.Change),:)
 
-wh_drop = [1029 1231];
+wh_drop = tmp.Subject'
 
 %% modeling
 
@@ -84,13 +85,15 @@ fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + age + gender + (Time|Subject)'
 clc
 
 % Compute the mean of 'Value' for each combination of Subject and Time
-T_avg = groupsummary(behaviour_table, {'Subject','Time', 'Group', 'age', 'gender'}, 'mean', 'Rating');
+T_avg = groupsummary(behaviour_table, {'Subject','Time', 'Group', 'Intensity', 'age', 'gender'}, 'mean', 'Rating');
 
-T_avgPRTvsPLA = T_avg(T_avg.Group ~= "3",:);
-T_avgPRTvsPLA.Group = removecats(T_avgPRTvsPLA.Group);
+T_avg = T_avg(~ismember(T_avg.Subject, wh_drop),:);
 
-T_avgPRTvsUC = T_avg(T_avg.Group ~= "2",:);
-T_avgPRTvsUC.Group = removecats(T_avgPRTvsUC.Group);
+T_avgPRTvsPLA = T_avg(T_avg.Group ~= 3,:);
+%T_avgPRTvsPLA.Group = removecats(T_avgPRTvsPLA.Group);
+
+T_avgPRTvsUC = T_avg(T_avg.Group ~= 2,:);
+%T_avgPRTvsUC.Group = removecats(T_avgPRTvsUC.Group);
 
 % each intensity separately: not sig
 fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)')
@@ -98,8 +101,9 @@ fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)')
 
 
 %% plot
-plot_MSS_group_by_time(T_avg, 'mean_Rating')
-print(gcf, fullfile(figdir, 'MSS_group_by_time.pdf'), '-dpdf');
+plot_MSS_group_by_time(T_avg(T_avg.Intensity==2,:), 'mean_Rating')
+title('Hi')
+%print(gcf, fullfile(figdir, 'MSS_group_by_time.pdf'), '-dpdf');
 
 
 %% plot ratings in PRT by subject ID, to confirm no time/order effect
