@@ -1,4 +1,4 @@
-# Multisensory Sensitivity in Chronic Lower Back Pain fMRI Analysis
+# Auditory Sensitivity in Chronic Lower Back Pain fMRI Analysis
 
 ## Overview
 
