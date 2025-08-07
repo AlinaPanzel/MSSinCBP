@@ -9,7 +9,7 @@
 % of variability in data at pre and at post and in change scores.
 % test-retest looks reasonable, and confirms the one outlier inflating
 % placebo reductions. This one outlier could make a difference on a
-% marginal p value but doesn't change overall pattern.
+% marginal p value but doesn't change overall pattern of change.
 
 % conclusion from staring at 'general' pattern: there really are stable
 % ind diffs, so seems risky/wrong to exclude ppl based on pre or post
@@ -17,14 +17,19 @@
 % based on change scores. In change scores, i see one obvious outlier
 % in UC, who has a likely-artifical large increase. If you account for
 % this, you'll probably see *all* groups decreasing, instead of only PRT
-% and PLA decreasing.
+% and PLA decreasing. So this will work against a PRT vs UC effect.
+
+% staring at mPFC: outliers are exagerating a potential PRT vs UC effect
+
+% staring at precuneus: relatively less impact of outliers, just 1, and its
+% "working against" the potential PRT effect so removing will help
 
 %% load data 
 % not sure whether this is high or low -- doesn't matter too much
 load('/Users/yoni/Repositories/MSSinCBP/Revisions/brain_outcomes_for_andrew.mat')
 
 %% pick a metric
-metric = 'sound';
+metric = 'precuneus';
 
 %% plot pre and post
 create_figure('ya', 2,2); 
