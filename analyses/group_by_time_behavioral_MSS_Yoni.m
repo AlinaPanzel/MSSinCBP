@@ -14,7 +14,7 @@ load(fullfile(fileparts(figdir), 'data', 'behavioural_sound_ratings_all.mat'))
 behaviour_table = sound_table;
 behaviour_table = join(behaviour_table, all_subjects_outcomes_demographics, "Keys","Subject");
 
-%% find and remove the outlier that Andrew noticed
+%% find and remove the two outliers that Andrew noticed
 
 % compute average per person per timepoint, averaging across trials and
 % intensities
@@ -37,22 +37,26 @@ tmp = Tw(Tw.Change == min(Tw.Change) | Tw.Change == max(Tw.Change),:)
 wh_drop = tmp.Subject'
 
 %% modeling
+clc
 
 % Time is coded 0/1, which is correct and interpretable
 % For Group convert to categorical. 
 % Then create two versions: one without PLA, one without UC. For testing
 % PRT vs. each control, separately
 behaviour_table.Group = categorical(behaviour_table.Group);
-behaviour_table.IsPRT = behaviour_table.Group == "1";
+behaviour_table.Time = categorical(behaviour_table.Time);
+behaviour_table.Intensity = categorical(behaviour_table.Intensity);
 
-behaviour_tablePRTvsPLA = behaviour_table(behaviour_table.Group ~= "3",:);
-behaviour_tablePRTvsPLA.Group = removecats(behaviour_tablePRTvsPLA.Group);
-
-behaviour_tablePRTvsUC = behaviour_table(behaviour_table.Group ~= "2",:);
-behaviour_tablePRTvsUC.Group = removecats(behaviour_tablePRTvsUC.Group);
-
-% we see a highly sig PRT effect vs. placebo! about 6 points
-fitlme(behaviour_tablePRTvsPLA, 'Rating ~ Group*Time*Intensity + (1+Time|Subject)', 'Exclude',ismember(behaviour_tablePRTvsPLA.Subject, wh_drop))
+% This here below is the simple version of Andrew's model, which gives p =
+% .06 for PRT vs PLA. You have to include a main effect of Group.
+% Otherwise, groups are forced to have the same baseline value, and all you
+% estimating is group difference from that forced-same baseline value to
+% the post-treatment value. If groups are similar at post-tx, there will be
+% no sig Group x Time. Once you include a main effect of Group (eg at
+% baseline), the slope for each group can have a different baseline value,
+% then going to post-treatment, you estimate a DiD model which is what you
+% want.
+fitlme(behaviour_table, 'Rating ~ Group + Time + Intensity + Group:Time + (1+Time|Subject)', 'Exclude', ismember(behaviour_table.Subject, wh_drop))
 
 %% PRT vs combined control
 fitlme(behaviour_table, 'Rating ~ IsPRT*Time + Intensity + age + gender + (Time|Subject)', 'Exclude',ismember(behaviour_table.Subject, wh_drop))
