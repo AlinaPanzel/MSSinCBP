@@ -1,6 +1,5 @@
 % let's merge in age and gender
 
-
 figdir = '/Users/yoni/Repositories/MSSinCBP/figures';
 
 datadir = '/Users/yoni/Repositories/OLP4CBP/data';
@@ -14,7 +13,7 @@ load(fullfile(fileparts(figdir), 'data', 'behavioural_sound_ratings_all.mat'))
 behaviour_table = sound_table;
 behaviour_table = join(behaviour_table, all_subjects_outcomes_demographics, "Keys","Subject");
 
-%% find and remove the outlier that Andrew noticed
+%% find and remove the two outliers that Andrew noticed
 
 % compute average per person per timepoint, averaging across trials and
 % intensities
@@ -37,25 +36,27 @@ tmp = Tw(Tw.Change == min(Tw.Change) | Tw.Change == max(Tw.Change),:)
 wh_drop = tmp.Subject'
 
 %% modeling
+clc
 
 % Time is coded 0/1, which is correct and interpretable
 % For Group convert to categorical. 
 % Then create two versions: one without PLA, one without UC. For testing
 % PRT vs. each control, separately
 behaviour_table.Group = categorical(behaviour_table.Group);
-behaviour_table.IsPRT = behaviour_table.Group == "1";
+behaviour_table.Time = categorical(behaviour_table.Time);
+behaviour_table.Intensity = categorical(behaviour_table.Intensity);
 
-behaviour_tablePRTvsPLA = behaviour_table(behaviour_table.Group ~= "3",:);
-behaviour_tablePRTvsPLA.Group = removecats(behaviour_tablePRTvsPLA.Group);
+% This here below is the simple version of Andrew's model, which gives p =
+% .06 for PRT vs PLA. You have to include a main effect of Group.
+% Otherwise, groups are forced to have the same baseline value, and all you
+% estimating is group difference from that forced-same baseline value to
+% the post-treatment value. If groups are similar at post-tx, there will be
+% no sig Group x Time. Once you include a main effect of Group (eg at
+% baseline), the slope for each group can have a different baseline value,
+% then going to post-treatment, you estimate a DiD model which is what you
+% want.
+fitlme(behaviour_table, 'Rating ~ Group + Time + Intensity + Group:Time + (1+Time|Subject)', 'Exclude', ismember(behaviour_table.Subject, wh_drop))
 
-behaviour_tablePRTvsUC = behaviour_table(behaviour_table.Group ~= "2",:);
-behaviour_tablePRTvsUC.Group = removecats(behaviour_tablePRTvsUC.Group);
-
-% we see a highly sig PRT effect vs. placebo! about 6 points
-fitlme(behaviour_tablePRTvsPLA, 'Rating ~ Group*Time*Intensity + (1+Time|Subject)', 'Exclude',ismember(behaviour_tablePRTvsPLA.Subject, wh_drop))
-
-%% PRT vs combined control
-fitlme(behaviour_table, 'Rating ~ IsPRT*Time + Intensity + age + gender + (Time|Subject)', 'Exclude',ismember(behaviour_table.Subject, wh_drop))
 
 %% SUMMARY
 % dropping the two outliers brings the p values from the n.s. zone into the
@@ -64,40 +65,19 @@ fitlme(behaviour_table, 'Rating ~ IsPRT*Time + Intensity + age + gender + (Time|
 
 
 %% sanity/memory check: confirm that when you test subject average low and avg hi, no sig effect
-% i previously (5 years ago) tested for Lo and Hi separately.
-
+clc
 
 % Compute the mean of 'Value' for each combination of Subject and Time
 T_avg = groupsummary(behaviour_table, {'Subject','Time', 'Intensity', 'Group', 'age', 'gender'}, 'mean', 'Rating');
 
-T_avgPRTvsPLA = T_avg(T_avg.Group ~= "3",:);
-T_avgPRTvsPLA.Group = removecats(T_avgPRTvsPLA.Group);
+T_avg.isprt = T_avg.Group=='1';
+fitlme(T_avg, 'mean_Rating ~ Group*Time + Intensity + (Time|Subject)', 'Exclude', ismember(T_avg.Subject, wh_drop))
 
-T_avgPRTvsUC = T_avg(T_avg.Group ~= "2",:);
-T_avgPRTvsUC.Group = removecats(T_avgPRTvsUC.Group);
 
-% each intensity separately: not sig
-fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + age + gender + (Time|Subject)', 'Exclude', T_avgPRTvsPLA.Intensity==2)
-%fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)', 'Exclude', T_avgPRTvsUC.Intensity==2)
-
-%% sanity/memory check: confirm that when you test subject average across low/hi, no sig effect
-% i also previously (5 years ago) tested subj avg, avg across Lo and Hi 
-clc
-
-% Compute the mean of 'Value' for each combination of Subject and Time
-T_avg = groupsummary(behaviour_table, {'Subject','Time', 'Group', 'Intensity', 'age', 'gender'}, 'mean', 'Rating');
-
-T_avg = T_avg(~ismember(T_avg.Subject, wh_drop),:);
-
-T_avgPRTvsPLA = T_avg(T_avg.Group ~= 3,:);
-%T_avgPRTvsPLA.Group = removecats(T_avgPRTvsPLA.Group);
-
-T_avgPRTvsUC = T_avg(T_avg.Group ~= 2,:);
-%T_avgPRTvsUC.Group = removecats(T_avgPRTvsUC.Group);
-
-% each intensity separately: not sig
-fitlme(T_avgPRTvsPLA, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)')
-fitlme(T_avgPRTvsUC, 'mean_Rating ~ Group*Time + age + gender + (1|Subject)')
+% OK, the real issue is: 5 years ago, I did NOT check for outliers. I don't
+% need to model each trial separately. Its totally fine to average them.
+% What I need to do is: 1) check for outliers, 2) put ALL the data in the
+% same model -- both control groups, and both intensities
 
 
 %% plot
