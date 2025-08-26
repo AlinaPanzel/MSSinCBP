@@ -9,9 +9,6 @@ T.measure   = categorical(T.measure);
 
 measures = categories(T.measure);
 
-save('brain_measures_longformat.mat', 'con_long');
-
-
 %% Fit & test
 % 
 results = table(strings(0,1), zeros(0,1), nan(0,1), nan(0,1), nan(0,1), nan(0,1), ...
@@ -21,25 +18,17 @@ models  = struct('measure',{},'lme',{});
 for k = 1:numel(measures)
     m  = measures{k};
     Tk = T(T.measure == m, :);
-    Tk = Tk(~ismissing(Tk.value), :);
-
-    if height(Tk) < 5 || numel(categories(Tk.group))<2 || numel(categories(Tk.timepoint))<2
-        results = [results; {string(m), height(Tk), NaN, NaN, NaN, NaN}];
-        continue
-    end
-
+   
     lme = fitlme(Tk, 'value ~ group*timepoint + intensity + (1|subID)');
 
     % joint test of all group:timepoint coefficients
     cn = string(lme.CoefficientNames);
     J  = find(contains(cn,"group") & contains(cn,"timepoint"));
-    if isempty(J), F=NaN; df1=NaN; df2=NaN; p=NaN;
-    else
-        L = zeros(numel(J), numel(cn));
-        for i=1:numel(J), L(i,J(i)) = 1; end
-        [p,F,df1,df2] = coefTest(lme, L);
-    end
-
+   
+    L = zeros(numel(J), numel(cn));
+    for i=1:numel(J), L(i,J(i)) = 1; end
+    [p,F,df1,df2] = coefTest(lme, L);
+    
     results = [results; {string(m), height(Tk), F, df1, df2, p}];
     models(end+1).measure = string(m); %#ok<SAGROW>
     models(end).lme = lme;
@@ -61,9 +50,6 @@ Rprint.q_BH= round(Rprint.q_BH,4);
 disp('=== Group × Time interaction (per measure) ===');
 disp(Rprint);
 
-% (optional) save to CSV
-% writetable(Rprint, 'lmm_groupXtime_results.csv');
-
 %% Figures
 
 valid = ~isnan(results.p);
@@ -83,34 +69,69 @@ yline(-log10(0.05),'--','\alpha = 0.05','LabelHorizontalAlignment','left'); grid
 % imagesc(neglogp(:)'); colorbar; colormap(parula);
 % title('-log_{10}(p) (sorted)'); set(gca,'YTick',[],'XTick',1:numel(meas_sorted),'XTickLabel',meas_sorted); xtickangle(35);
 
-%% Mean plots
-
+%% Mean plots  (low intensity = dashed, high intensity = thick solid; one global legend)
 sigOrTop = string(Rprint.measure(1:min(6,height(Rprint)))); % top 6 by p
-tl = tiledlayout(ceil(numel(sigOrTop)/2), 2, 'TileSpacing','compact','Padding','compact');
+tl = tiledlayout(ceil(numel(sigOrTop)/2), 2, ...
+    'TileSpacing','compact','Padding','compact');
+
+legendHandles = gobjects(0);
+legendLabels  = strings(0,1);
+
 for i = 1:numel(sigOrTop)
     nexttile;
     Tk = T(T.measure == categorical(sigOrTop(i)), :);
     S  = summarize_by_gtx(Tk); % mean/std/n/sem per group×time×intensity
 
     grpLevels = categories(S.group);
-    intLevels = categories(S.intensity);
+    intLevels = categories(S.intensity);   % usually {'1','2'}
     C = lines(numel(grpLevels));
+
     hold on;
     for gi = 1:numel(grpLevels)
         for ii = 1:numel(intLevels)
             rows = S.group==grpLevels{gi} & S.intensity==intLevels{ii};
             if ~any(rows), continue; end
+
             x = double(S.timepoint(rows));
             y = S.mean(rows);
             e = S.sem(rows);
+
+            % offset intensity slightly so curves don’t overlap
             off = (ii - (numel(intLevels)+1)/2) * 0.08;
-            errorbar(x+off, y, e, '-o', 'Color', C(gi,:), 'MarkerFaceColor', C(gi,:));
+
+            % style: high = solid thick, low = dashed
+            if str2double(char(intLevels{ii})) == 2
+                ls = '-'; lw = 2;
+            else
+                ls = '--'; lw = 1.5;
+            end
+
+            h = errorbar(x+off, y, e, ...
+                'LineStyle', ls, ...
+                'LineWidth', lw, ...
+                'Color', C(gi,:), ...
+                'Marker','o','MarkerFaceColor',C(gi,:));
+
+            % Collect one handle per group × intensity for global legend (only first subplot)
+            if i == 1
+                legendHandles(end+1) = h; %#ok<SAGROW>
+                legendLabels(end+1)  = sprintf('Group %s · Int %s', ...
+                    grpLevels{gi}, char(intLevels{ii}));
+            end
         end
     end
-    title(sigOrTop(i)); xlabel('Time'); ylabel('Mean \pm SEM'); grid on; box off;
+    title(sigOrTop(i));
+    xlabel('Time'); ylabel('Mean \pm SEM');
+    grid on; box off;
     hold off;
 end
+
 title(tl, 'Raw means by group × time × intensity');
+
+% Add one global legend outside plots
+lg = legend(legendHandles, legendLabels, 'Orientation','horizontal', ...
+    'Location','southoutside');
+lg.Layout.Tile = 'south';
 
 
 
