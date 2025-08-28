@@ -26,16 +26,24 @@
 
 %% load data 
 % not sure whether this is high or low -- doesn't matter too much
-load('/Users/yoni/Repositories/MSSinCBP/Revisions/brain_outcomes_for_andrew.mat')
+load('/Users/yoni/Repositories/MSSinCBP/Revisions/Brain_measures_longformat_all_26.08.25.mat')
 
-%% pick a metric
+%% pick a metric, make some helpful vars
 metric = 'precuneus';
+my_con_long_all = con_long_all(con_long_all.measure==metric,:);
+
+wh1 = my_con_long_all.group==1;
+wh2 = my_con_long_all.group==2;
+wh3 = my_con_long_all.group==3;
+
+wh_pre = my_con_long_all.timepoint==1;
+wh_post = my_con_long_all.timepoint==2;
 
 %% plot pre and post
-create_figure('ya', 2,2); 
+create_figure('outliers', 2,2); 
 
 when = 'pre';
-violinplot({brainmeasure_data.PRT.(when).(metric), brainmeasure_data.Placebo.(when).(metric), brainmeasure_data.UC.(when).(metric)}, 'mc','k', 'medc', 'r', 'xlabel', {'PRT' 'PLA' 'UC'});
+violinplot({my_con_long_all.value(wh1 & wh_pre), my_con_long_all.value(wh2 & wh_pre), my_con_long_all.value(wh3 & wh_pre) }, 'mc','k', 'medc', 'r', 'xlabel', {'PRT' 'PLA' 'UC'});
 legend off
 ylabel(metric)
 set(gca, 'FontSize', 18)
@@ -43,67 +51,53 @@ title(when)
 
 subplot(2,2,2)
 when = 'post';
-violinplot({brainmeasure_data.PRT.(when).(metric), brainmeasure_data.Placebo.(when).(metric), brainmeasure_data.UC.(when).(metric)}, 'mc','k', 'medc', 'r', 'xlabel', {'PRT' 'PLA' 'UC'});
+violinplot({my_con_long_all.value(wh1 & wh_post), my_con_long_all.value(wh2 & wh_post), my_con_long_all.value(wh3 & wh_post) }, 'mc','k', 'medc', 'r', 'xlabel', {'PRT' 'PLA' 'UC'});
 legend off
 ylabel(metric)
 set(gca, 'FontSize', 18)
 title(when)
 
-%% plot change scores
 
+%% change scores
 subplot(2,2,3)
-title('Pre to Post Change')
-fn = fieldnames(brainmeasure_data.PRT.pre);                 % cell-array of field names
-idx = find(strcmp(metric, fn), 1);   
 
-cellarr = {brainmeasure_data.PRT.change_matrix(:,idx), brainmeasure_data.Placebo.change_matrix(:,idx), brainmeasure_data.UC.change_matrix(:,idx)};
-violinplot(cellarr, 'mc','k', 'medc', 'r', 'xlabel', {'PRT' 'PLA' 'UC'});
+wide = unstack(my_con_long_all, 'value', 'timepoint');
+wide.change = wide.x2 - wide.x1;
+violinplot({wide.change(wide.group==1), wide.change(wide.group==2), wide.change(wide.group==3)},  'mc','k', 'medc', 'r', 'xlabel', {'PRT' 'PLA' 'UC'})
+title('pre to post change')
+set(gca, 'FontSize', 18)
 legend off
 ylabel(metric)
+
+% time 1 and 2 scatter
+subplot(2,2,4)
+gscatter(wide.x1, wide.x2, wide.group)
+lsline
+legend off
+xlabel('Pre'), ylabel('Post')
 set(gca, 'FontSize', 18)
 
-%% find outliers in change scores, testing across all groups
-arr = vertcat(cellarr{:});
-[B, wh_out] = rmoutliers(arr);
-arr(wh_out)
+% plot correlation within group
+% Compute and annotate correlations for each group
+hold on
+groups = unique(wide.group);
+colors = lines(numel(groups));
 
-%% test retest: gscatter
+for i = 1:numel(groups)
+    g = groups(i);
+    idx = wide.group == g;
+    x = wide.x1(idx);
+    y = wide.x2(idx);
 
-subplot(2,2,4)
-when = 'pre';
-pre = {brainmeasure_data.PRT.(when).(metric), brainmeasure_data.Placebo.(when).(metric), brainmeasure_data.UC.(when).(metric)};
-pre = vertcat(pre{:});
+    % correlation
+    r = corr(x, y, 'Rows','complete');
 
-when = 'post';
-post = {brainmeasure_data.PRT.(when).(metric), brainmeasure_data.Placebo.(when).(metric), brainmeasure_data.UC.(when).(metric)};
-post = vertcat(post{:});
+    % find position for text (upper left of this group’s cluster)
+    xpos = min(wide.x1) + 0.05*range(wide.x1);
+    ypos = max(wide.x2) - (0.05*range(wide.x2)*i);
 
-% build grouping labels
-g = [ repmat({'PRT'}, numel(brainmeasure_data.PRT.pre.A1), 1);
-      repmat({'PLA'}, numel(brainmeasure_data.Placebo.pre.A1), 1);
-      repmat({'UC'}, numel(brainmeasure_data.UC.pre.A1), 1) ];
-
-% plot
-gscatter(pre, post, g, 'rgb', 'osd', 8);
-xlabel('Pre'); ylabel('Post');
-legend('Location','best');
-hold on;
-
-% 4) add one least-squares line per group
-h = lsline;                          % fits and plots lines
-for k = 1:numel(h)
-    h(k).LineWidth = 2;              % thicken them
-    % (optional) match marker color:
-    % h(k).Color = get(gca,'ColorOrder')(k,:);
+    % place text in group color
+    text(xpos, ypos, sprintf('Group %d: r=%.2f', g, r), ...
+        'Color', colors(i,:), 'FontSize', 14, 'FontWeight','bold');
 end
-
-hold off;
-
-%% save
-
-repodir = '/Users/yoni/Repositories/MSSinCBP/';
-figdir = fullfile(repodir, 'Revisions', 'figures');
-
-exportgraphics(gcf, fullfile(figdir, ['outliers_' metric '.pdf']), 'ContentType', 'vector')
-
-% plot_logitudinal_auditory_modifiability('MVPA_NA', 
+hold off
